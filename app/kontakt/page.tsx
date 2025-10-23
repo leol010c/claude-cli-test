@@ -5,8 +5,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { MapPin, Phone, Mail, Clock, Send } from "lucide-react"
+import { MapPin, Phone, Mail, Clock, Send, AlertCircle } from "lucide-react"
 import { useState } from "react"
+import TurnstileWidget from "@/components/turnstile-widget"
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -51,20 +52,57 @@ export default function KontaktPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
+  const [errorMessage, setErrorMessage] = useState("")
+  const [turnstileToken, setTurnstileToken] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setSubmitStatus("idle")
+    setErrorMessage("")
 
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    // Check if Turnstile token is present
+    if (!turnstileToken) {
+      setErrorMessage("Bitte bestätigen Sie, dass Sie kein Roboter sind.")
+      setIsSubmitting(false)
+      setSubmitStatus("error")
+      return
+    }
 
-    setIsSubmitting(false)
-    setSubmitStatus("success")
-    setFormData({ name: "", email: "", message: "" })
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          message: formData.message,
+          turnstileToken,
+        }),
+      })
 
-    // Reset success message after 3 seconds
-    setTimeout(() => setSubmitStatus("idle"), 3000)
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        setErrorMessage(data.error || "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.")
+        setSubmitStatus("error")
+      } else {
+        setSubmitStatus("success")
+        setFormData({ name: "", email: "", message: "" })
+        setTurnstileToken("")
+
+        // Reset success message after 5 seconds
+        setTimeout(() => setSubmitStatus("idle"), 5000)
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error)
+      setErrorMessage("Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.")
+      setSubmitStatus("error")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -72,6 +110,21 @@ export default function KontaktPage() {
       ...formData,
       [e.target.name]: e.target.value
     })
+  }
+
+  const handleTurnstileSuccess = (token: string) => {
+    setTurnstileToken(token)
+    setErrorMessage("")
+  }
+
+  const handleTurnstileError = () => {
+    setTurnstileToken("")
+    setErrorMessage("Die Sicherheitsüberprüfung ist fehlgeschlagen. Bitte laden Sie die Seite neu.")
+  }
+
+  const handleTurnstileExpire = () => {
+    setTurnstileToken("")
+    setErrorMessage("Die Sicherheitsüberprüfung ist abgelaufen. Bitte bestätigen Sie erneut.")
   }
 
   return (
@@ -215,20 +268,51 @@ export default function KontaktPage() {
                       />
                     </div>
 
+                    {/* Turnstile Widget */}
+                    <div>
+                      <TurnstileWidget
+                        onSuccess={handleTurnstileSuccess}
+                        onError={handleTurnstileError}
+                        onExpire={handleTurnstileExpire}
+                      />
+                    </div>
+
+                    {/* Success Message */}
                     {submitStatus === "success" && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="p-4 bg-green-50 border border-green-200 rounded-md text-green-800 text-sm"
+                        className="p-4 bg-green-50 border border-green-200 rounded-md text-green-800 text-sm flex items-start gap-3"
                       >
-                        Vielen Dank für Ihre Nachricht! Wir melden uns bald bei Ihnen.
+                        <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <div>
+                          <p className="font-medium">Erfolgreich gesendet!</p>
+                          <p className="mt-1">Vielen Dank für Ihre Nachricht! Wir melden uns bald bei Ihnen.</p>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Error Message */}
+                    {submitStatus === "error" && errorMessage && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm flex items-start gap-3"
+                      >
+                        <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Fehler</p>
+                          <p className="mt-1">{errorMessage}</p>
+                        </div>
                       </motion.div>
                     )}
 
                     <Button
                       type="submit"
                       size="lg"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || !turnstileToken}
                       className="w-full group"
                     >
                       {isSubmitting ? (

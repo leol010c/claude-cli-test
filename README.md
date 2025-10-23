@@ -8,10 +8,11 @@ Eine moderne, elegante Website für eine deutsche kieferorthopädische Praxis, g
 - **Animationen**: Sanfte Animationen und Übergänge mit Framer Motion
 - **Responsive Design**: Vollständig responsive für Desktop und Mobile
 - **Deutsche Sprache**: Komplett auf Deutsch
+- **Bot-Schutz**: Cloudflare Turnstile Integration im Kontaktformular
 - **Drei Hauptseiten**:
   - **Startseite**: Ansprechende Landing Page mit Hero-Bereich, Features und Services
   - **Team**: Teamübersicht mit Fotos und Beschreibungen
-  - **Kontakt**: Kontaktformular, Standortinformationen und eingebettete Google Maps
+  - **Kontakt**: Kontaktformular mit Turnstile-Verifizierung, Standortinformationen und eingebettete Google Maps
 
 ## Technologie-Stack
 
@@ -21,6 +22,7 @@ Eine moderne, elegante Website für eine deutsche kieferorthopädische Praxis, g
 - **UI-Komponenten**: Shadcn/UI
 - **Animationen**: Framer Motion
 - **Icons**: Lucide React
+- **Bot-Schutz**: Cloudflare Turnstile
 
 ## Installation
 
@@ -41,12 +43,17 @@ cd D:\Projects\claude-cli-test
 npm install
 ```
 
-3. Entwicklungsserver starten:
+3. (Optional) Cloudflare Turnstile konfigurieren:
+   - Siehe [TURNSTILE_SETUP.md](TURNSTILE_SETUP.md) für detaillierte Anleitung
+   - Test-Keys sind bereits in `.env.local` konfiguriert
+   - Für Produktion: Eigene Keys von Cloudflare holen
+
+4. Entwicklungsserver starten:
 ```bash
 npm run dev
 ```
 
-4. Browser öffnen und zu [http://localhost:3000](http://localhost:3000) navigieren
+5. Browser öffnen und zu [http://localhost:3000](http://localhost:3000) navigieren
 
 ## Verfügbare Skripte
 
